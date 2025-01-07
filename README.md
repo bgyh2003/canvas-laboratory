@@ -1,2 +1,2 @@
 # canvas-laboratory
-canvas实验室
+canvas 实验室
