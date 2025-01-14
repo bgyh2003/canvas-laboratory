@@ -1,5 +1,40 @@
 export default class ImageOutlining {
 
+    // 颜色表
+    static colorMap = {
+        'red': "#f00",
+        'green': "#0f0",
+        'blue': "#00f",
+        'yellow': "#ff0",
+        'cyan': "#0ff",
+        'magenta': "#f0f",
+        'white': "#fff",
+        'black': "#000",
+        'gray': "#888",
+        'grey': "#888",
+        'reddish': "#f00",
+        'greenish': "#0f0",
+        'blueish': "#00f",
+    }
+
+    // 颜色转换（16进制转 rgb ）
+    static hexToRgb(hex) {
+        if (this.colorMap[hex]) hex = this.colorMap[hex]
+        if (hex.length === 4) {
+            hex = hex.replace(/[^0-9a-f]/gi, '')
+            hex = hex.replace(/[0-9a-f]/gi, function (c) {
+                return c + c
+            })
+        } else if (hex.length === 3) {
+            hex = hex.replace(/[^0-9a-f]/gi, '')
+        }
+        return {
+            r: parseInt(hex.substring(0, 2), 16),
+            g: parseInt(hex.substring(2, 4), 16),
+            b: parseInt(hex.substring(4, 6), 16)
+        }
+    }
+
     #padding
     #strokes
 
@@ -31,15 +66,11 @@ export default class ImageOutlining {
         this.scaleWidth = 0
         this.scaleHeight = 0
 
-        // 基础canvas
-        this.baseCanvas = document.createElement('canvas')
-        this.baseCtx = this.baseCanvas.getContext('2d')
-        this.baseCtx.imageSmoothingEnabled = true
+        // 图片canvas
+        this.imageCanvas = document.createElement('canvas')
+        this.imageCtx = this.imageCanvas.getContext('2d')
+        this.imageCtx.imageSmoothingEnabled = true
 
-        // 临时canvas
-        this.tempCanvas = document.createElement('canvas')
-        this.tempCtx = this.tempCanvas.getContext('2d')
-        this.tempCtx.imageSmoothingEnabled = true
 
         // 结果canvas
         this.resultCanvas = document.createElement('canvas')
@@ -66,40 +97,10 @@ export default class ImageOutlining {
         this.scaleHeight = this.height * this.scale
 
         // 设置  基础画布 尺寸
-        this.baseCanvas.width = this.scaleWidth
-        this.baseCanvas.height = this.scaleHeight
-
-        // 设置  临时画布 尺寸
-        this.tempCanvas.width = this.scaleWidth
-        this.tempCanvas.height = this.scaleHeight
-
-        // 设置  结果画布 尺寸
-        this.resultCanvas.width = this.width
-        this.resultCanvas.height = this.height
-
-    }
-
-    // 像素边缘实体化
-    toEdge(canvas) {
-        const ctx = canvas.getContext('2d')
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-        for (let i = 3; i < imageData.data.length; i += 4) {
-            if (imageData.data[i] > this.k) imageData.data[i] = 255
-            else imageData.data[i] = 0
-        }
-        ctx.putImageData(imageData, 0, 0)
-    }
-
-    // 绘制基础画布
-    drawBaseCanvas() {
-
-        // 重置画笔
-        this.baseCtx.reset()
-
-        // 绘制带阴影基础图像
-        this.baseCtx.shadowColor = "white"
-        this.baseCtx.shadowBlur = (this.#padding + this.#padding * 0.5) * this.scale
-        this.baseCtx.drawImage(
+        this.imageCanvas.width = this.scaleWidth
+        this.imageCanvas.height = this.scaleHeight
+        this.imageCtx.clearRect(0, 0, this.scaleWidth, this.scaleHeight)
+        this.imageCtx.drawImage(
             this.image,
             this.offsetSize * this.scale,
             this.offsetSize * this.scale,
@@ -107,70 +108,110 @@ export default class ImageOutlining {
             this.image.height * this.scale
         )
 
-        // 边缘实体化
-        this.toEdge(this.baseCanvas)
+        // 设置  结果画布 尺寸
+        this.resultCtx.clearRect(0, 0, this.width, this.height)
+        this.resultCanvas.width = this.width
+        this.resultCanvas.height = this.height
+
     }
 
-    // 绘制描边
-    drawStrokes() {
+    // 边缘实体化
+    toEdge(canvas, color) {
+        const { r, g, b } = ImageOutlining.hexToRgb(color)
+        const ctx = canvas.getContext('2d')
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+        for (let i = 0; i < imageData.data.length; i += 4) {
 
-        // 重置画笔
-        this.tempCtx.reset()
+            imageData.data[i + 0] = r
+            imageData.data[i + 1] = g
+            imageData.data[i + 2] = b
+
+            let aIndex = i + 3
+
+            if (imageData.data[aIndex] > this.k) imageData.data[aIndex] = 255
+            else imageData.data[aIndex] = 0
+        }
+        ctx.putImageData(imageData, 0, 0)
+    }
+
+    // 创建描边图像
+    createStrokeCanvas(image, strokeColor, strokeWidth, strokeScale) {
+
+        // 创建canvas
+        const canvas = document.createElement('canvas')
+        canvas.width = image.width
+        canvas.height = image.height
+        const ctx = canvas.getContext('2d')
+        ctx.imageSmoothingEnabled = true
 
         // 保存画笔状态
-        this.tempCtx.save()
+        ctx.save()
 
-        // 绘制基础图像
-        this.tempCtx.drawImage(this.baseCanvas, 0, 0, this.baseCanvas.width, this.baseCanvas.height)
+        // 绘制带阴影基础图像
+        ctx.shadowColor = strokeColor
+        ctx.shadowBlur = (strokeWidth + strokeWidth * 0.5) * strokeScale
+        ctx.drawImage(image, 0, 0, image.width, image.height)
 
-        // 循环绘制描边
-        for (const item of this.strokes) {
-
-            // 获取描边颜色和宽度
-            const { color, width } = item
-
-            // 描边
-            this.tempCtx.shadowColor = color
-            this.tempCtx.shadowBlur = (width + width * 0.5) * this.scale
-            this.tempCtx.drawImage(this.tempCanvas, 0, 0, this.baseCanvas.width, this.baseCanvas.height)
-
-            // 恢复画笔状态
-            this.tempCtx.restore()
-            this.tempCtx.save()
-
-            // 镂空
-            this.tempCtx.globalCompositeOperation = "destination-out"
-            this.tempCtx.drawImage(this.baseCanvas, 0, 0, this.baseCanvas.width, this.baseCanvas.height)
-
-            // 边缘实体化
-            this.toEdge(this.tempCanvas)
-
-            // 恢复画笔状态
-            this.tempCtx.restore()
-            this.tempCtx.save()
-
-        }
-
-       
+        // 边缘实体化
+        this.toEdge(canvas, strokeColor)
 
         // 恢复画笔状态
-        this.tempCtx.restore()
-        this.tempCtx.save()
-        this.tempCtx.drawImage(this.baseCanvas, 0, 0, this.baseCanvas.width, this.baseCanvas.height)
+        ctx.restore()
+        ctx.save()
 
+        // 绘制模糊描边
+        ctx.filter = "blur(0.8px)"
+        for (let i = 0; i < 10; i++) ctx.drawImage(canvas, 0, 0)
+
+        // 恢复画笔状态
+        ctx.restore()
+        ctx.save()
+
+        // 重新绘制基础图像
+        ctx.drawImage(image, 0, 0, image.width, image.height)
+
+        return canvas
 
     }
 
+    // 输出图片
     output() {
 
-        // 绘制基础画布
-        this.drawBaseCanvas()
+        console.time("createStrokeCanvas")
 
-        // 绘制描边
-        this.drawStrokes()
+        // 基础画布（带padding）
+        let baseCanvas
 
-        this.resultCtx.drawImage(this.tempCanvas, 0, 0, this.width, this.height)
+        // 描边画布
+        let strokeCanvas
 
+        // 创建基础画布
+        if (this.#padding) baseCanvas = this.createStrokeCanvas(this.imageCanvas, "white", this.#padding, this.scale)
+        else baseCanvas = this.imageCanvas
+
+        // 创建描边画布
+        strokeCanvas = baseCanvas
+        for (const item of this.#strokes) {
+            const { color, width } = item
+            const tempCanvas = this.createStrokeCanvas(strokeCanvas, color, width, this.scale)
+            strokeCanvas = tempCanvas
+        }
+
+        // 边距
+        if (this.#padding) {
+            const ctx = strokeCanvas.getContext('2d')
+            ctx.save()
+            ctx.globalCompositeOperation = 'destination-out'
+            ctx.drawImage(baseCanvas, 0, 0)
+            ctx.restore()
+            ctx.drawImage(this.imageCanvas, 0, 0, this.imageCanvas.width, this.imageCanvas.height)
+        }
+
+
+        // 恢复尺寸
+        this.resultCtx.drawImage(strokeCanvas, 0, 0, this.width, this.height)
+
+        console.timeEnd("createStrokeCanvas")
         return this.resultCanvas
 
     }
