@@ -177,8 +177,6 @@ export default class ImageOutlining {
     // 输出图片
     output() {
 
-        console.time("createStrokeCanvas")
-
         // 基础画布（带padding）
         let baseCanvas
 
@@ -211,7 +209,6 @@ export default class ImageOutlining {
         // 恢复尺寸
         this.resultCtx.drawImage(strokeCanvas, 0, 0, this.width, this.height)
 
-        console.timeEnd("createStrokeCanvas")
         return this.resultCanvas
 
     }
