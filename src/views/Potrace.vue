@@ -1,39 +1,37 @@
 <script setup>
 import { ref, reactive, onMounted, useTemplateRef } from 'vue'
-import ImageOutlining from '@/lib/ImageOutlining'
+import ImageStroker from '@/lib/ImageStroker'
 
 // 表单数据
 const form = reactive({
-  padding: 0,
+  padding: 10,
   stroes: [
     {
-      color: 'white',
-      width: 10,
+      color: 'red',
+      width: 20,
     },
     {
-      color: 'black',
-      width: 10,
+      color: 'blue',
+      width: 20,
     }
   ]
 })
 
-// 原图对象
-const imageSource = useTemplateRef('imageSource')
 
 // 目标画布对象
 const view = useTemplateRef('view')
 
 // 图像描边对象
-let imageOutlining
+let imageStroker
 
 // 渲染
 const render = async () => {
 
-  imageOutlining.padding = form.padding
-  imageOutlining.strokes = form.stroes
+  imageStroker.padding = form.padding
+  imageStroker.strokes = form.stroes
 
   console.time("output")
-  const canvas = imageOutlining.output()
+  const canvas = await imageStroker.output()
   console.timeEnd("output")
 
 
@@ -62,19 +60,22 @@ const deleteStroke = (item) => {
   render()
 }
 
+
 onMounted(async () => {
 
   // 载入图片
-  imageSource.value.src = '/images/img.png'
-  await imageSource.value.decode()
-
+  const imageSource = document.createElement('img')
+  imageSource.src = '/images/img1.png'
+  await imageSource.decode()
 
   // 实例化 图片描边对象
-  imageOutlining = new ImageOutlining({
-    image: imageSource.value
+  imageStroker = new ImageStroker({
+    image: imageSource
   })
 
+
   render()
+
 })
 
 
@@ -110,26 +111,23 @@ onMounted(async () => {
         </a-button>
 
 
-
-
       </a-form>
-
 
     </div>
 
     <div class="flex flex-1 bg-white rounded gap-3 p-3 h-full overflow-auto">
 
       <div class="w-2/4 h-full flex justify-center rounded items-center bg-zinc-100  overflow-auto ">
-        <img ref="imageSource">
+        <img src="/images/img1.png">
       </div>
 
-      <div ref="view" id="view" class="w-2/4 h-full flex justify-center rounded items-center bg-zinc-100 ">
-
+      <div ref="view" class="w-2/4 h-full flex justify-center rounded items-center bg-zinc-100 ">
       </div>
 
     </div>
 
   </div>
+
 
 
 </template>

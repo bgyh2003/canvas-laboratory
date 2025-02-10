@@ -137,6 +137,8 @@ export default class ImageOutlining {
     // 创建描边图像
     createStrokeCanvas(image, strokeColor, strokeWidth, strokeScale) {
 
+        const strokeOffset = strokeWidth > 10 ? strokeWidth * 0.45 : 0
+
         // 创建canvas
         const canvas = document.createElement('canvas')
         canvas.width = image.width
@@ -149,28 +151,35 @@ export default class ImageOutlining {
 
         // 绘制带阴影基础图像
         ctx.shadowColor = strokeColor
-        ctx.shadowBlur = (strokeWidth + strokeWidth * 0.5) * strokeScale
+        ctx.shadowBlur = (strokeWidth + strokeOffset) * strokeScale
         ctx.drawImage(image, 0, 0, image.width, image.height)
 
         // 边缘实体化
         this.toEdge(canvas, strokeColor)
 
-        // 恢复画笔状态
-        ctx.restore()
-        ctx.save()
+        // 创建canvas
+        const canvas2 = document.createElement('canvas')
+        canvas2.width = image.width
+        canvas2.height = image.height
+        const ctx2 = canvas2.getContext('2d')
+        ctx2.imageSmoothingEnabled = true
+        ctx2.drawImage(canvas, 0, 0)
+
+        // 保存画笔状态
+        ctx2.save()
 
         // 绘制模糊描边
-        ctx.filter = "blur(0.8px)"
-        for (let i = 0; i < 10; i++) ctx.drawImage(canvas, 0, 0)
+        ctx2.filter = "blur(0.8px)"
+        for (let i = 0; i < 10; i++) ctx2.drawImage(canvas, 0, 0)
 
         // 恢复画笔状态
-        ctx.restore()
-        ctx.save()
+        ctx2.restore()
+        ctx2.save()
 
         // 重新绘制基础图像
-        ctx.drawImage(image, 0, 0, image.width, image.height)
+        ctx2.drawImage(image, 0, 0, image.width, image.height)
 
-        return canvas
+        return canvas2
 
     }
 

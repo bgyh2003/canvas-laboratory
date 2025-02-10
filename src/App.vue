@@ -20,7 +20,8 @@ const menuClick = (key) => router.push({ name: key })
   <div class=" bg-white rounded">
 
     <a-menu class="rounded" mode="horizontal" :default-selected-keys="defaultSelectedKeys" @menu-item-click="menuClick">
-      <a-menu-item key="image-outlining">图像描边</a-menu-item>
+      <a-menu-item key="image-outlining">图像描边(阴影法)</a-menu-item>
+      <a-menu-item key="potrace">图像描边(potrace)</a-menu-item>
       <a-menu-item key="image-distortion-filter">图像变形</a-menu-item>
       <a-menu-item key="art-text">变形文字</a-menu-item>
     </a-menu>
