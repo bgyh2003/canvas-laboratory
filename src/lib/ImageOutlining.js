@@ -19,14 +19,13 @@ export default class ImageOutlining {
 
     // 颜色转换（16进制转 rgb ）
     static hexToRgb(hex) {
-        if (this.colorMap[hex]) hex = this.colorMap[hex]
-        if (hex.length === 4) {
-            hex = hex.replace(/[^0-9a-f]/gi, '')
-            hex = hex.replace(/[0-9a-f]/gi, function (c) {
-                return c + c
-            })
-        } else if (hex.length === 3) {
-            hex = hex.replace(/[^0-9a-f]/gi, '')
+
+        // 去掉 # 号
+        hex = hex.replace('#', '');
+
+        // 如果是 3 位缩写，扩展成 6 位
+        if (hex.length === 3) {
+            hex = hex.split('').map(c => c + c).join('');
         }
         return {
             r: parseInt(hex.substring(0, 2), 16),
